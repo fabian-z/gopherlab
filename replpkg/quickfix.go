@@ -3,9 +3,9 @@ package replpkg
 import (
 	"strings"
 
-	"golang.org/x/tools/go/ast/astutil"
-	"go/types"
 	"go/ast"
+	"go/types"
+	"golang.org/x/tools/go/ast/astutil"
 
 	"github.com/motemen/go-quickfix"
 )

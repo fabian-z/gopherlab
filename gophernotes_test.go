@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/stretchr/testify/assert"
 	repl "github.com/fabian-z/gophernotes/replpkg"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
