@@ -5,8 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	zmq "github.com/pebbe/zmq4"
 	uuid "github.com/nu7hatch/gouuid"
+	zmq "github.com/pebbe/zmq4"
 )
 
 // MsgHeader encodes header info for ZMQ messages
@@ -67,17 +67,30 @@ func WireMsgToComposedMsg(msgparts [][]byte, signkey []byte) (msg ComposedMsg,
 // ToWireMsg translates a ComposedMsg into a multipart ZMQ message ready to send, and
 // signs it. This does not add the return identities or the delimiter.
 func (msg ComposedMsg) ToWireMsg(signkey []byte) (msgparts [][]byte) {
+
 	msgparts = make([][]byte, 5)
-	header, _ := json.Marshal(msg.Header)
+	header, err := json.Marshal(msg.Header)
+	if err != nil {
+		logger.Fatal(err)
+	}
 	msgparts[1] = header
-	parentHeader, _ := json.Marshal(msg.ParentHeader)
+	parentHeader, err := json.Marshal(msg.ParentHeader)
+	if err != nil {
+		logger.Fatal(err)
+	}
 	msgparts[2] = parentHeader
 	if msg.Metadata == nil {
 		msg.Metadata = make(map[string]interface{})
 	}
-	metadata, _ := json.Marshal(msg.Metadata)
+	metadata, err := json.Marshal(msg.Metadata)
+	if err != nil {
+		logger.Fatal(err)
+	}
 	msgparts[3] = metadata
-	content, _ := json.Marshal(msg.Content)
+	content, err := json.Marshal(msg.Content)
+	if err != nil {
+		logger.Fatal(err)
+	}
 	msgparts[4] = content
 
 	// Sign the message
@@ -89,6 +102,7 @@ func (msg ComposedMsg) ToWireMsg(signkey []byte) (msgparts [][]byte) {
 		msgparts[0] = make([]byte, hex.EncodedLen(mac.Size()))
 		hex.Encode(msgparts[0], mac.Sum(nil))
 	}
+
 	return
 }
 
@@ -102,9 +116,36 @@ type MsgReceipt struct {
 
 // SendResponse sends a message back to return identites of the received message.
 func (receipt *MsgReceipt) SendResponse(socket *zmq.Socket, msg ComposedMsg) {
-	socket.SendMessage(receipt.Identities)
-	socket.Send("<IDS|MSG>", zmq.SNDMORE)
-	socket.SendMessage(msg.ToWireMsg(receipt.Sockets.Key))
+
+	var err error
+
+	for i := 0; i < len(receipt.Identities)-1; i++ {
+		if _, err = socket.SendBytes(receipt.Identities[i], zmq.SNDMORE); err != nil {
+			logger.Fatal(err)
+		}
+	}
+	_, err = socket.SendBytes(receipt.Identities[(len(receipt.Identities)-1)], zmq.SNDMORE)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	_, err = socket.Send("<IDS|MSG>", zmq.SNDMORE)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	newmsg := msg.ToWireMsg(receipt.Sockets.Key)
+
+	for i := 0; i < len(newmsg)-1; i++ {
+		if _, err = socket.SendBytes(newmsg[i], zmq.SNDMORE); err != nil {
+			logger.Fatal(err)
+		}
+	}
+	_, err = socket.SendBytes(newmsg[(len(newmsg)-1)], 0)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
 	logger.Println("<--", msg.Header.MsgType)
 	logger.Printf("%+v\n", msg.Content)
 }

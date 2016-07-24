@@ -38,26 +38,67 @@ type SocketGroup struct {
 // PrepareSockets sets up the ZMQ sockets through which the kernel will communicate.
 func PrepareSockets(conn_info ConnectionInfo) (sg SocketGroup) {
 
-	context, _ := zmq.NewContext()
-	sg.Shell_socket, _ = context.NewSocket(zmq.ROUTER)
-	sg.Control_socket, _ = context.NewSocket(zmq.ROUTER)
-	sg.Stdin_socket, _ = context.NewSocket(zmq.ROUTER)
-	sg.IOPub_socket, _ = context.NewSocket(zmq.PUB)
+	var err error
+
+	context, err := zmq.NewContext()
+	if err != nil {
+		logger.Fatal(err)
+	}
+	sg.Shell_socket, err = context.NewSocket(zmq.ROUTER)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	sg.Control_socket, err = context.NewSocket(zmq.ROUTER)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	sg.Stdin_socket, err = context.NewSocket(zmq.ROUTER)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	sg.IOPub_socket, err = context.NewSocket(zmq.PUB)
+	if err != nil {
+		logger.Fatal(err)
+	}
 
 	address := fmt.Sprintf("%v://%v:%%v", conn_info.Transport, conn_info.IP)
 
-	sg.Shell_socket.Bind(fmt.Sprintf(address, conn_info.Shell_port))
-	sg.Control_socket.Bind(fmt.Sprintf(address, conn_info.Control_port))
-	sg.Stdin_socket.Bind(fmt.Sprintf(address, conn_info.Stdin_port))
-	sg.IOPub_socket.Bind(fmt.Sprintf(address, conn_info.IOPub_port))
+	if err = sg.Shell_socket.Bind(fmt.Sprintf(address, conn_info.Shell_port)); err != nil {
+		logger.Fatal("sg.Shell_socket bind:", err)
+	}
+
+	if err = sg.Control_socket.Bind(fmt.Sprintf(address, conn_info.Control_port)); err != nil {
+		logger.Fatal("sg.Control_socket bind:", err)
+	}
+
+	if err = sg.Stdin_socket.Bind(fmt.Sprintf(address, conn_info.Stdin_port)); err != nil {
+		logger.Fatal("sg.Stdin_socket bind:", err)
+	}
+
+	if err = sg.IOPub_socket.Bind(fmt.Sprintf(address, conn_info.IOPub_port)); err != nil {
+		logger.Fatal("sg.IOPub_socket bind:", err)
+	}
 
 	// Message signing key
 	sg.Key = []byte(conn_info.Key)
 
 	// Start the heartbeat device
-	HB_socket, _ := context.NewSocket(zmq.REP)
-	HB_socket.Bind(fmt.Sprintf(address, conn_info.HB_port))
-	go zmq.Proxy(HB_socket, HB_socket, nil)
+	HB_socket, err := context.NewSocket(zmq.REP)
+
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	if err = HB_socket.Bind(fmt.Sprintf(address, conn_info.HB_port)); err != nil {
+		logger.Fatal("HB_socket bind:", err)
+	}
+
+	go func() {
+		err := zmq.Proxy(HB_socket, HB_socket, nil)
+		if err != nil {
+			logger.Fatal(err)
+		}
+	}()
 
 	return
 }
@@ -134,7 +175,7 @@ func RunKernel(connection_file string, logwriter io.Writer) {
 	sockets := PrepareSockets(conn_info)
 
 	pi := zmq.NewPoller()
-	
+
 	pi.Add(sockets.Shell_socket, zmq.POLLIN)
 	pi.Add(sockets.Stdin_socket, zmq.POLLIN)
 	pi.Add(sockets.Control_socket, zmq.POLLIN)
@@ -152,9 +193,10 @@ func RunKernel(connection_file string, logwriter io.Writer) {
 			msgparts, _ = polled[0].Socket.RecvMessageBytes(0)
 			msg, ids, err := WireMsgToComposedMsg(msgparts, sockets.Key)
 			if err != nil {
-				fmt.Println(err)
+				logger.Println(err)
 				return
 			}
+			logger.Println("received shell message: ", msg)
 			HandleShellMsg(MsgReceipt{msg, ids, sockets})
 		case polled[1].Events&zmq.POLLIN != 0: // stdin socket - not implemented.
 			polled[1].Socket.RecvMessageBytes(0)
@@ -162,9 +204,10 @@ func RunKernel(connection_file string, logwriter io.Writer) {
 			msgparts, _ = polled[2].Socket.RecvMessageBytes(0)
 			msg, ids, err := WireMsgToComposedMsg(msgparts, sockets.Key)
 			if err != nil {
-				fmt.Println(err)
+				logger.Println(err)
 				return
 			}
+			logger.Println("received control message: ", msg)
 			HandleShellMsg(MsgReceipt{msg, ids, sockets})
 		}
 	}
