@@ -1,5 +1,5 @@
-hash: 5836cca3d3546ca1c3bd02bf10e5dea58751d70b85186423cf82093cdb559add
-updated: 2016-07-24T20:27:58.270783953+02:00
+hash: 21d09d09fb3bb73d96fac733792d738238fa370ec2013257ba67b300a646b5be
+updated: 2016-07-24T20:47:26.56726041+02:00
 imports:
 - name: github.com/alecthomas/gozmq
   version: d1b01a2df6b2c64f03fecaeabea541963fc4749f
@@ -9,6 +9,8 @@ imports:
   version: 5c522febc6796f9c2ceabf9374a75490e2d268da
 - name: github.com/nu7hatch/gouuid
   version: 179d4d0c4d8d407a32af483c2354df1d2c91e6c3
+- name: github.com/pebbe/zmq4
+  version: abe13fe06e130b96c4536978e0ff857716df558f
 - name: golang.org/x/tools
   version: ed69e84b1518b5857a9f4e01d1f9cefdcc45246e
   subpackages:
