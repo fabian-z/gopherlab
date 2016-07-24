@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	repl "github.com/gophergala2016/gophernotes/replpkg"
+	repl "github.com/fabian-z/gophernotes/replpkg"
 	"go/token"
 )
 
