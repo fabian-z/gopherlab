@@ -1,0 +1,11 @@
+package: github.com/fabian-z/gophernotes
+import:
+- package: github.com/alecthomas/gozmq
+- package: github.com/mitchellh/go-homedir
+- package: github.com/motemen/go-quickfix
+- package: github.com/nu7hatch/gouuid
+- package: golang.org/x/tools
+  subpackages:
+  - go/ast/astutil
+  - go/gcimporter15
+  - imports
