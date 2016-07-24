@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	zmq "github.com/alecthomas/gozmq"
+	zmq "github.com/pebbe/zmq4"
 	"io"
 	"io/ioutil"
 	"log"
@@ -57,7 +57,7 @@ func PrepareSockets(conn_info ConnectionInfo) (sg SocketGroup) {
 	// Start the heartbeat device
 	HB_socket, _ := context.NewSocket(zmq.REP)
 	HB_socket.Bind(fmt.Sprintf(address, conn_info.HB_port))
-	go zmq.Device(zmq.FORWARDER, HB_socket, HB_socket)
+	go zmq.Proxy(HB_socket, HB_socket, nil)
 
 	return
 }
@@ -133,32 +133,33 @@ func RunKernel(connection_file string, logwriter io.Writer) {
 	// Set up the ZMQ sockets through which the kernel will communicate
 	sockets := PrepareSockets(conn_info)
 
-	pi := zmq.PollItems{
-		zmq.PollItem{Socket: sockets.Shell_socket, Events: zmq.POLLIN},
-		zmq.PollItem{Socket: sockets.Stdin_socket, Events: zmq.POLLIN},
-		zmq.PollItem{Socket: sockets.Control_socket, Events: zmq.POLLIN},
-	}
+	pi := zmq.NewPoller()
+	
+	pi.Add(sockets.Shell_socket, zmq.POLLIN)
+	pi.Add(sockets.Stdin_socket, zmq.POLLIN)
+	pi.Add(sockets.Control_socket, zmq.POLLIN)
 
 	var msgparts [][]byte
+	var polled []zmq.Polled
 	// Message receiving loop:
 	for {
-		_, err = zmq.Poll(pi, -1)
+		polled, err = pi.Poll(-1)
 		if err != nil {
 			log.Fatalln(err)
 		}
 		switch {
-		case pi[0].REvents&zmq.POLLIN != 0: // shell socket
-			msgparts, _ = pi[0].Socket.RecvMultipart(0)
+		case polled[0].Events&zmq.POLLIN != 0: // shell socket
+			msgparts, _ = polled[0].Socket.RecvMessageBytes(0)
 			msg, ids, err := WireMsgToComposedMsg(msgparts, sockets.Key)
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
 			HandleShellMsg(MsgReceipt{msg, ids, sockets})
-		case pi[1].REvents&zmq.POLLIN != 0: // stdin socket - not implemented.
-			pi[1].Socket.RecvMultipart(0)
-		case pi[2].REvents&zmq.POLLIN != 0: // control socket - treat like shell socket.
-			msgparts, _ = pi[2].Socket.RecvMultipart(0)
+		case polled[1].Events&zmq.POLLIN != 0: // stdin socket - not implemented.
+			polled[1].Socket.RecvMessageBytes(0)
+		case polled[2].Events&zmq.POLLIN != 0: // control socket - treat like shell socket.
+			msgparts, _ = polled[2].Socket.RecvMessageBytes(0)
 			msg, ids, err := WireMsgToComposedMsg(msgparts, sockets.Key)
 			if err != nil {
 				fmt.Println(err)

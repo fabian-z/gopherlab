@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	zmq "github.com/alecthomas/gozmq"
+	zmq "github.com/pebbe/zmq4"
 	uuid "github.com/nu7hatch/gouuid"
 )
 
@@ -102,9 +102,9 @@ type MsgReceipt struct {
 
 // SendResponse sends a message back to return identites of the received message.
 func (receipt *MsgReceipt) SendResponse(socket *zmq.Socket, msg ComposedMsg) {
-	socket.SendMultipart(receipt.Identities, zmq.SNDMORE)
-	socket.Send([]byte("<IDS|MSG>"), zmq.SNDMORE)
-	socket.SendMultipart(msg.ToWireMsg(receipt.Sockets.Key), 0)
+	socket.SendMessage(receipt.Identities)
+	socket.Send("<IDS|MSG>", zmq.SNDMORE)
+	socket.SendMessage(msg.ToWireMsg(receipt.Sockets.Key))
 	logger.Println("<--", msg.Header.MsgType)
 	logger.Printf("%+v\n", msg.Content)
 }
