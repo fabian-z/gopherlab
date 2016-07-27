@@ -71,7 +71,7 @@ func HandleExecuteRequest(receipt MsgReceipt) {
 		content["user_expressions"] = make(map[string]string)
 		if len(val) > 0 && !silent {
 			var outContent OutputMsg
-			out := NewMsg("pyout", receipt.Msg)
+			out := NewMsg("execute_result", receipt.Msg)
 			outContent.Execcount = ExecCounter
 			outContent.Data = make(map[string]string)
 			outContent.Data["text/plain"] = fmt.Sprint(val)
@@ -80,11 +80,10 @@ func HandleExecuteRequest(receipt MsgReceipt) {
 			receipt.SendResponse(receipt.Sockets.IOPub_socket, out)
 		}
 	} else {
-		content["status"] = "error"
 		content["ename"] = "ERROR"
 		content["evalue"] = err.Error()
 		content["traceback"] = []string{stderr.String()}
-		errormsg := NewMsg("pyerr", receipt.Msg)
+		errormsg := NewMsg("error", receipt.Msg)
 		errormsg.Content = ErrMsg{"Error", err.Error(), []string{stderr.String()}}
 		receipt.SendResponse(receipt.Sockets.IOPub_socket, errormsg)
 	}
