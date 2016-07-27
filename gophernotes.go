@@ -108,6 +108,13 @@ func PrepareSockets(conn_info ConnectionInfo) (sg SocketGroup) {
 
 // HandleShellMsg responds to a message on the shell ROUTER socket.
 func HandleShellMsg(receipt MsgReceipt) {
+
+	// Publish status: busy immediately
+
+	busy := NewMsg("status", receipt.Msg)
+	busy.Content = KernelStatus{"busy"}
+	receipt.SendResponse(receipt.Sockets.IOPub_socket, busy)
+
 	switch receipt.Msg.Header.MsgType {
 	case "kernel_info_request":
 		SendKernelInfo(receipt)
@@ -118,6 +125,13 @@ func HandleShellMsg(receipt MsgReceipt) {
 	default:
 		logger.Println("Unhandled shell message:", receipt.Msg.Header.MsgType)
 	}
+
+	// Publish status: idle after processing
+
+	idle := NewMsg("status", receipt.Msg)
+	idle.Content = KernelStatus{"idle"}
+	receipt.SendResponse(receipt.Sockets.IOPub_socket, idle)
+
 }
 
 // KernelInfo holds information about the igo kernel, for kernel_info_reply messages.
@@ -159,10 +173,6 @@ func SendKernelInfo(receipt MsgReceipt) {
 	}
 
 	receipt.SendResponse(receipt.Sockets.Shell_socket, reply)
-
-	idle := NewMsg("status", receipt.Msg)
-	idle.Content = KernelStatus{"idle"}
-	receipt.SendResponse(receipt.Sockets.IOPub_socket, idle)
 }
 
 // ShutdownReply encodes a boolean indication of stutdown/restart

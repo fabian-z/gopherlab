@@ -43,12 +43,6 @@ type ErrMsg struct {
 // reply messages.
 func HandleExecuteRequest(receipt MsgReceipt) {
 
-	// Publish status: busy immediately
-
-	busy := NewMsg("status", receipt.Msg)
-	busy.Content = KernelStatus{"busy"}
-	receipt.SendResponse(receipt.Sockets.IOPub_socket, busy)
-
 	// Actual execution handling
 
 	reply := NewMsg("execute_reply", receipt.Msg)
@@ -91,10 +85,4 @@ func HandleExecuteRequest(receipt MsgReceipt) {
 	// send the output back to the notebook
 	reply.Content = content
 	receipt.SendResponse(receipt.Sockets.Shell_socket, reply)
-
-	// Publish status: idle message
-
-	idle := NewMsg("status", receipt.Msg)
-	idle.Content = KernelStatus{"idle"}
-	receipt.SendResponse(receipt.Sockets.IOPub_socket, idle)
 }
