@@ -15,17 +15,19 @@ var logger *log.Logger
 
 const protocolVersion string = "5.0"
 
+var connectionInfo ConnectionInfo
+
 // ConnectionInfo stores the contents of the kernel connection file created by Jupyter.
 type ConnectionInfo struct {
-	Signature_scheme string
-	Transport        string
-	Stdin_port       int
-	Control_port     int
-	IOPub_port       int
-	HB_port          int
-	Shell_port       int
-	Key              string
-	IP               string
+	Signature_scheme string `json:"signature_scheme"`
+	Transport        string `json:"transport"`
+	Stdin_port       int    `json:"stdin_port"`
+	Control_port     int    `json:"control_port"`
+	IOPub_port       int    `json:"iopub_port"`
+	HB_port          int    `json:"hb_port"`
+	Shell_port       int    `json:"shell_port"`
+	Key              string `json:"key"`
+	IP               string `json:"ip"`
 }
 
 // SocketGroup holds the sockets needed to communicate with the kernel, and
@@ -39,7 +41,7 @@ type SocketGroup struct {
 }
 
 // PrepareSockets sets up the ZMQ sockets through which the kernel will communicate.
-func PrepareSockets(conn_info ConnectionInfo) (sg SocketGroup) {
+func PrepareSockets() (sg SocketGroup) {
 
 	var err error
 
@@ -64,26 +66,26 @@ func PrepareSockets(conn_info ConnectionInfo) (sg SocketGroup) {
 		logger.Fatal(err)
 	}
 
-	address := fmt.Sprintf("%v://%v:%%v", conn_info.Transport, conn_info.IP)
+	address := fmt.Sprintf("%v://%v:%%v", connectionInfo.Transport, connectionInfo.IP)
 
-	if err = sg.Shell_socket.Bind(fmt.Sprintf(address, conn_info.Shell_port)); err != nil {
+	if err = sg.Shell_socket.Bind(fmt.Sprintf(address, connectionInfo.Shell_port)); err != nil {
 		logger.Fatal("sg.Shell_socket bind:", err)
 	}
 
-	if err = sg.Control_socket.Bind(fmt.Sprintf(address, conn_info.Control_port)); err != nil {
+	if err = sg.Control_socket.Bind(fmt.Sprintf(address, connectionInfo.Control_port)); err != nil {
 		logger.Fatal("sg.Control_socket bind:", err)
 	}
 
-	if err = sg.Stdin_socket.Bind(fmt.Sprintf(address, conn_info.Stdin_port)); err != nil {
+	if err = sg.Stdin_socket.Bind(fmt.Sprintf(address, connectionInfo.Stdin_port)); err != nil {
 		logger.Fatal("sg.Stdin_socket bind:", err)
 	}
 
-	if err = sg.IOPub_socket.Bind(fmt.Sprintf(address, conn_info.IOPub_port)); err != nil {
+	if err = sg.IOPub_socket.Bind(fmt.Sprintf(address, connectionInfo.IOPub_port)); err != nil {
 		logger.Fatal("sg.IOPub_socket bind:", err)
 	}
 
 	// Message signing key
-	sg.Key = []byte(conn_info.Key)
+	sg.Key = []byte(connectionInfo.Key)
 
 	// Start the heartbeat device
 	HB_socket, err := context.NewSocket(zmq.REP)
@@ -92,7 +94,7 @@ func PrepareSockets(conn_info ConnectionInfo) (sg SocketGroup) {
 		logger.Fatal(err)
 	}
 
-	if err = HB_socket.Bind(fmt.Sprintf(address, conn_info.HB_port)); err != nil {
+	if err = HB_socket.Bind(fmt.Sprintf(address, connectionInfo.HB_port)); err != nil {
 		logger.Fatal("HB_socket bind:", err)
 	}
 
@@ -118,6 +120,8 @@ func HandleShellMsg(receipt MsgReceipt) {
 	switch receipt.Msg.Header.MsgType {
 	case "kernel_info_request":
 		SendKernelInfo(receipt)
+	case "connect_request":
+		HandleConnectRequest(receipt)
 	case "execute_request":
 		HandleExecuteRequest(receipt)
 	case "shutdown_request":
@@ -175,7 +179,7 @@ func SendKernelInfo(receipt MsgReceipt) {
 	receipt.SendResponse(receipt.Sockets.Shell_socket, reply)
 }
 
-// ShutdownReply encodes a boolean indication of stutdown/restart
+// ShutdownReply encodes a boolean indication of shutdown/restart
 type ShutdownReply struct {
 	Restart bool `json:"restart"`
 }
@@ -191,6 +195,27 @@ func HandleShutdownRequest(receipt MsgReceipt) {
 	os.Exit(0)
 }
 
+// ConnectReply encodes the ports necessary for connecting to the kernel
+type ConnectReply struct {
+	ShellPort int `json:"shell_port"`
+	IOPubPort int `json:"iopub_port"`
+	StdinPort int `json:"stdin_port"`
+	HBPort    int `json:"hb_port"`
+}
+
+func HandleConnectRequest(receipt MsgReceipt) {
+	reply := NewMsg("connect_reply", receipt.Msg)
+
+	reply.Content = ConnectReply{
+		ShellPort: connectionInfo.Shell_port,
+		IOPubPort: connectionInfo.IOPub_port,
+		StdinPort: connectionInfo.Stdin_port,
+		HBPort:    connectionInfo.HB_port,
+	}
+
+	receipt.SendResponse(receipt.Sockets.Shell_socket, reply)
+}
+
 // RunKernel is the main entry point to start the kernel. This is what is called by the
 // gophernotes executable.
 func RunKernel(connection_file string, logwriter io.Writer) {
@@ -200,19 +225,18 @@ func RunKernel(connection_file string, logwriter io.Writer) {
 	// set up the "Session" with the replpkg
 	SetupExecutionEnvironment()
 
-	var conn_info ConnectionInfo
 	bs, err := ioutil.ReadFile(connection_file)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	err = json.Unmarshal(bs, &conn_info)
+	err = json.Unmarshal(bs, &connectionInfo)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	logger.Printf("%+v\n", conn_info)
+	logger.Printf("%+v\n", connectionInfo)
 
 	// Set up the ZMQ sockets through which the kernel will communicate
-	sockets := PrepareSockets(conn_info)
+	sockets := PrepareSockets()
 
 	pi := zmq.NewPoller()
 
