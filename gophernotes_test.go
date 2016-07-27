@@ -2,7 +2,6 @@ package main
 
 import (
 	repl "github.com/fabian-z/gophernotes/replpkg"
-	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -11,11 +10,6 @@ func noError(t *testing.T, err error) {
 	if err != nil {
 		t.Fatal(err)
 	}
-}
-
-// TestStub is a canary test to make sure testing and testify are good to go
-func TestStub(t *testing.T) {
-	assert.True(t, true, "This is good. Canary test passing")
 }
 
 // TestRun_import tests importing and use of a package
