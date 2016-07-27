@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"runtime"
 )
 
 var logger *log.Logger
@@ -121,8 +122,18 @@ func HandleShellMsg(receipt MsgReceipt) {
 
 // KernelInfo holds information about the igo kernel, for kernel_info_reply messages.
 type KernelInfo struct {
-	Protocol_version string `json:"protocol_version"`
-	Language         string `json:"language"`
+	ProtocolVersion       string             `json:"protocol_version"`
+	Implementation        string             `json:"implementation"`
+	ImplementationVersion string             `json:"implementation_version"`
+	LanguageInfo          KernelLanguageInfo `json:"language_info"`
+	Banner                string             `json:"banner"`
+}
+
+type KernelLanguageInfo struct {
+	Name          string `json:"name"`
+	Version       string `json:"version"`
+	Mimetype      string `json:"mimetype"`
+	FileExtension string `json:"file_extension"`
 }
 
 // KernelStatus holds a kernel state, for status broadcast messages.
@@ -133,7 +144,20 @@ type KernelStatus struct {
 // SendKernelInfo sends a kernel_info_reply message.
 func SendKernelInfo(receipt MsgReceipt) {
 	reply := NewMsg("kernel_info_reply", receipt.Msg)
-	reply.Content = KernelInfo{protocolVersion, "go"}
+
+	reply.Content = KernelInfo{
+		ProtocolVersion:       protocolVersion,
+		Implementation:        "Gophernotes",
+		ImplementationVersion: "0.1",
+		LanguageInfo: KernelLanguageInfo{
+			Name:          "go",
+			Version:       runtime.Version(),
+			Mimetype:      "application/x-golang", // text/plain would be possible, too
+			FileExtension: ".go",
+		},
+		Banner: "Gophernotes - msg spec v5",
+	}
+
 	receipt.SendResponse(receipt.Sockets.Shell_socket, reply)
 }
 
