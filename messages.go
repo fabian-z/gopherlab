@@ -163,3 +163,23 @@ func NewMsg(msgType string, parent ComposedMsg) (msg ComposedMsg) {
 	msg.Header.Version = protocolVersion
 	return
 }
+
+func HandleWithStatus(receipt MsgReceipt, handler func(MsgReceipt)) {
+
+	// Publish status: busy
+
+	busy := NewMsg("status", receipt.Msg)
+	busy.Content = KernelStatus{"busy"}
+	receipt.SendResponse(receipt.Sockets.IOPub_socket, busy)
+
+	// Call actual handler function
+
+	handler(receipt)
+
+	// Publish status: idle after processing
+
+	idle := NewMsg("status", receipt.Msg)
+	idle.Content = KernelStatus{"idle"}
+	receipt.SendResponse(receipt.Sockets.IOPub_socket, idle)
+
+}

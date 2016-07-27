@@ -111,30 +111,18 @@ func PrepareSockets() (sg SocketGroup) {
 // HandleShellMsg responds to a message on the shell ROUTER socket.
 func HandleShellMsg(receipt MsgReceipt) {
 
-	// Publish status: busy immediately
-
-	busy := NewMsg("status", receipt.Msg)
-	busy.Content = KernelStatus{"busy"}
-	receipt.SendResponse(receipt.Sockets.IOPub_socket, busy)
-
 	switch receipt.Msg.Header.MsgType {
 	case "kernel_info_request":
-		SendKernelInfo(receipt)
+		HandleWithStatus(receipt, SendKernelInfo)
 	case "connect_request":
-		HandleConnectRequest(receipt)
+		HandleWithStatus(receipt, HandleConnectRequest)
 	case "execute_request":
-		HandleExecuteRequest(receipt)
+		HandleWithStatus(receipt, HandleExecuteRequest)
 	case "shutdown_request":
-		HandleShutdownRequest(receipt)
+		HandleWithStatus(receipt, HandleShutdownRequest)
 	default:
 		logger.Println("Unhandled shell message:", receipt.Msg.Header.MsgType)
 	}
-
-	// Publish status: idle after processing
-
-	idle := NewMsg("status", receipt.Msg)
-	idle.Content = KernelStatus{"idle"}
-	receipt.SendResponse(receipt.Sockets.IOPub_socket, idle)
 
 }
 
