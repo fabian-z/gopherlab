@@ -159,6 +159,10 @@ func SendKernelInfo(receipt MsgReceipt) {
 	}
 
 	receipt.SendResponse(receipt.Sockets.Shell_socket, reply)
+
+	idle := NewMsg("status", receipt.Msg)
+	idle.Content = KernelStatus{"idle"}
+	receipt.SendResponse(receipt.Sockets.IOPub_socket, idle)
 }
 
 // ShutdownReply encodes a boolean indication of stutdown/restart
