@@ -12,6 +12,8 @@ import (
 
 var logger *log.Logger
 
+const protocolVersion string = "5.0"
+
 // ConnectionInfo stores the contents of the kernel connection file created by Jupyter.
 type ConnectionInfo struct {
 	Signature_scheme string
@@ -119,7 +121,7 @@ func HandleShellMsg(receipt MsgReceipt) {
 
 // KernelInfo holds information about the igo kernel, for kernel_info_reply messages.
 type KernelInfo struct {
-	Protocol_version []int  `json:"protocol_version"`
+	Protocol_version string `json:"protocol_version"`
 	Language         string `json:"language"`
 }
 
@@ -131,7 +133,7 @@ type KernelStatus struct {
 // SendKernelInfo sends a kernel_info_reply message.
 func SendKernelInfo(receipt MsgReceipt) {
 	reply := NewMsg("kernel_info_reply", receipt.Msg)
-	reply.Content = KernelInfo{[]int{4, 0}, "go"}
+	reply.Content = KernelInfo{protocolVersion, "go"}
 	receipt.SendResponse(receipt.Sockets.Shell_socket, reply)
 }
 

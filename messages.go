@@ -15,6 +15,7 @@ type MsgHeader struct {
 	Username string `json:"username"`
 	Session  string `json:"session"`
 	MsgType  string `json:"msg_type"`
+	Version  string `json:"version"`
 }
 
 // ComposedMsg represents an entire message in a high-level structure.
@@ -159,5 +160,6 @@ func NewMsg(msgType string, parent ComposedMsg) (msg ComposedMsg) {
 	msg.Header.MsgType = msgType
 	u, _ := uuid.NewV4()
 	msg.Header.MsgID = u.String()
+	msg.Header.Version = protocolVersion
 	return
 }
