@@ -60,7 +60,7 @@ The REPL backend of both `gophernotes` and `gopherlab` is provided by [gore](htt
 ```
   cp -a $GOPATH/bin/gopherlab ~/.local/share/jupyter/kernels/gopherlab/
   
-  sed -i "s#/go/bin/gopherlab#$HOME/.local/share/jupyter/kernels/gopherlab/gopherlab#g" kernel/kernel.json
+  sed -i "s#/go/bin/gopherlab#$HOME/.local/share/jupyter/kernels/gopherlab/gopherlab#g" $HOME/.local/share/jupyter/kernels/gopherlab/kernel.json
 ```
   
 
