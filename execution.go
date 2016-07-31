@@ -63,12 +63,40 @@ func HandleExecuteRequest(receipt MsgReceipt) {
 		content["payload"] = make([]map[string]interface{}, 0)
 		content["user_variables"] = make(map[string]string)
 		content["user_expressions"] = make(map[string]string)
-		if len(val) > 0 && !silent {
+		if (len(val) > 0 || len(REPLSession.StdoutChannel) > 0 || len(REPLSession.StderrChannel) > 0) && !silent {
 			var outContent OutputMsg
 			out := NewMsg("execute_result", receipt.Msg)
 			outContent.Execcount = ExecCounter
 			outContent.Data = make(map[string]string)
-			outContent.Data["text/plain"] = fmt.Sprint(val)
+
+			//append output from channel messages
+
+			var stdoutString string
+			var stderrString string
+			var newlineVal, newlineStderr string
+
+			select {
+			case stdout := <-REPLSession.StdoutChannel:
+				stdoutString = stdout + "\n"
+			default:
+
+			}
+
+			select {
+			case stderr := <-REPLSession.StderrChannel:
+				stderrString = stderr + "\n"
+			default:
+
+			}
+
+			if len(val) > 0 {
+				newlineVal = "\n"
+			}
+			if len(stderrString) > 0 {
+				newlineStderr = "\n"
+			}
+			
+			outContent.Data["text/plain"] = fmt.Sprint(val + newlineVal + stdoutString + newlineStderr + stderrString)
 			outContent.Metadata = make(map[string]interface{})
 			out.Content = outContent
 			receipt.SendResponse(receipt.Sockets.IOPub_socket, out)

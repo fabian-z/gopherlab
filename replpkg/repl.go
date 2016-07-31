@@ -76,6 +76,9 @@ type Session struct {
 	TypeInfo       types.Info
 	ExtraFilePaths []string
 	ExtraFiles     []*ast.File
+	
+	StdoutChannel	chan string
+	StderrChannel	chan string
 
 	mainBody         *ast.BlockStmt
 	storedBodyLength int
@@ -115,6 +118,8 @@ func NewSession() (*Session, error) {
 		Types: &types.Config{
 			Importer: importer.Default(),
 		},
+		StdoutChannel: make(chan string, 1),
+		StderrChannel: make(chan string, 1),
 	}
 
 	s.FilePath, err = tempFile()

@@ -175,6 +175,7 @@ func actionPrint(s *Session, _ string) error {
 		return err
 	}
 
+	s.StdoutChannel <- source
 	fmt.Println(source)
 
 	return nil
