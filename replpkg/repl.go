@@ -21,7 +21,6 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -53,104 +52,6 @@ var (
 		"import packages, functions, variables and constants from external golang source files")
 	flagPkg = flag.String("pkg", "", "specify a package where the session will be run inside")
 )
-
-func main() {
-	flag.Parse()
-
-	s, err := NewSession()
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Printf("gore version %s  :help for help\n", version)
-
-	if *flagExtFiles != "" {
-		extFiles := strings.Split(*flagExtFiles, ",")
-		s.includeFiles(extFiles)
-	}
-
-	if *flagPkg != "" {
-		err := s.includePackage(*flagPkg)
-		if err != nil {
-			errorf("-pkg: %s", err)
-			os.Exit(1)
-		}
-	}
-
-	rl := newContLiner()
-	defer rl.Close()
-
-	var historyFile string
-	home, err := homeDir()
-	if err != nil {
-		errorf("home: %s", err)
-	} else {
-		historyFile = filepath.Join(home, "history")
-
-		f, err := os.Open(historyFile)
-		if err != nil {
-			if !os.IsNotExist(err) {
-				errorf("%s", err)
-			}
-		} else {
-			_, err := rl.ReadHistory(f)
-			if err != nil {
-				errorf("while reading history: %s", err)
-			}
-		}
-	}
-
-	rl.SetWordCompleter(s.completeWord)
-
-	for {
-		in, err := rl.Prompt()
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			fmt.Fprintf(os.Stderr, "fatal: %s", err)
-			os.Exit(1)
-		}
-
-		if in == "" {
-			continue
-		}
-
-		if err := rl.Reindent(); err != nil {
-			fmt.Fprintf(os.Stderr, "error: %s\n", err)
-			rl.Clear()
-			continue
-		}
-
-		err = s.Eval(in)
-		if err != nil {
-			if err == ErrContinue {
-				continue
-			} else if err == ErrQuit {
-				break
-			}
-			fmt.Println(err)
-		}
-		rl.Accepted()
-	}
-
-	if historyFile != "" {
-		err := os.MkdirAll(filepath.Dir(historyFile), 0755)
-		if err != nil {
-			errorf("%s", err)
-		} else {
-			f, err := os.Create(historyFile)
-			if err != nil {
-				errorf("%s", err)
-			} else {
-				_, err := rl.WriteHistory(f)
-				if err != nil {
-					errorf("while saving history: %s", err)
-				}
-			}
-		}
-	}
-}
 
 func homeDir() (home string, err error) {
 	home = os.Getenv("GORE_HOME")
@@ -249,15 +150,15 @@ func (s *Session) mainFunc() *ast.FuncDecl {
 	return s.File.Scope.Lookup("main").Decl.(*ast.FuncDecl)
 }
 
-func (s *Session) Run() error {
+func (s *Session) Run() ([]byte, error, bytes.Buffer) {
 	f, err := os.Create(s.FilePath)
 	if err != nil {
-		return err
+		return []byte{}, err, bytes.Buffer{}
 	}
 
 	err = printer.Fprint(f, s.Fset, s.File)
 	if err != nil {
-		return err
+		return []byte{}, err, bytes.Buffer{}
 	}
 
 	return goRun(append(s.ExtraFilePaths, s.FilePath))
@@ -407,7 +308,7 @@ func (s *Session) reset() error {
 	return nil
 }
 
-func (s *Session) Eval(in string) error {
+func (s *Session) Eval(in string) (string, error, bytes.Buffer) {
 	debugf("eval >>> %q", in)
 
 	s.clearQuickFix()
@@ -425,7 +326,7 @@ func (s *Session) Eval(in string) error {
 			err := command.action(s, arg)
 			if err != nil {
 				if err == ErrQuit {
-					return err
+					return "", err, bytes.Buffer{}
 				}
 				errorf("%s: %s", command.name, err)
 			}
@@ -436,7 +337,7 @@ func (s *Session) Eval(in string) error {
 
 	if commandRan {
 		s.doQuickFix()
-		return nil
+		return "", nil, bytes.Buffer{}
 	}
 
 	if _, err := s.evalExpr(in); err != nil {
@@ -447,7 +348,7 @@ func (s *Session) Eval(in string) error {
 			debugf("stmt :: err = %s", err)
 
 			if _, ok := err.(scanner.ErrorList); ok {
-				return ErrContinue
+				return "", ErrContinue, bytes.Buffer{}
 			}
 		}
 	}
@@ -457,7 +358,7 @@ func (s *Session) Eval(in string) error {
 	}
 	s.doQuickFix()
 
-	err := s.Run()
+	output, err, strerr := s.Run()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			// if failed with status 2, remove the last statement
@@ -471,7 +372,7 @@ func (s *Session) Eval(in string) error {
 		errorf("%s", err)
 	}
 
-	return err
+	return string(output), err, strerr
 }
 
 // storeMainBody stores current state of code so that it can be restored
