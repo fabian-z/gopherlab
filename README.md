@@ -63,7 +63,7 @@ The REPL backend of both `gophernotes` and `gopherlab` is provided by [gore](htt
 ```
   cp -a $GOPATH/bin/gopherlab ~/.local/share/jupyter/kernels/gopherlab/
   
-  sed -i "s#/go/bin/gophernotes#$HOME/.local/share/jupyter/kernels/gopherlab/gopherlab#g" kernel/kernel.json
+  sed -i "s#/go/bin/gopherlab#$HOME/.local/share/jupyter/kernels/gopherlab/gopherlab#g" kernel/kernel.json
 ```
   
 
@@ -104,7 +104,6 @@ Some of the custom commands from the [gore](https://github.com/motemen/gore) REP
 :print                  Show current source (currently prints to the terminal where the notebook server is running)
 :write [<filename>]     Write out current source to file
 :help                   List commands
-:containerize           Build a Docker image that executes the compiled Go code (must have Docker installed)
 ```
 
 Output support for these command is currently under construction, e.g. `:print` already works.
