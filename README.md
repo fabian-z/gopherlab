@@ -1,4 +1,5 @@
 # gopherlab - Go in Jupyter Notebooks
+![CI status](https://travis-ci.org/fabian-z/gopherlab.svg)
 
 `gopherlab` is a Go kernel for [Jupyter](http://jupyter.org/) notebooks, also supporting the still alpha [JupyterLab](https://github.com/jupyter/jupyterlab).
 This allows for using Go in an interactive context, directly in the browser, making it ideal for educational uses and data science. 
