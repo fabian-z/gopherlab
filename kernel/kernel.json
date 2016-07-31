@@ -3,7 +3,7 @@
     	"/go/bin/gopherlab", 
     	"{connection_file}"
     	],
-    "display_name": "Golang",
+    "display_name": "Go (gopherlab)",
     "language": "go",
     "name": "go"
 }
