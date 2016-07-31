@@ -1,9 +1,9 @@
-package main
+package replpkg
 
 import (
 	"testing"
 
-	"github.com/motemen/gore/gocode"
+	"github.com/fabian-z/gophernotes/replpkg/gocode"
 )
 
 func TestSession_completeCode(t *testing.T) {

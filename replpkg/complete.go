@@ -1,9 +1,9 @@
-package main
+package replpkg
 
 import (
 	"strings"
 
-	"github.com/motemen/gore/gocode"
+	"github.com/fabian-z/gophernotes/replpkg/gocode"
 )
 
 func (s *Session) completeWord(line string, pos int) (string, []string, string) {

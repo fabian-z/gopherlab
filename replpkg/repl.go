@@ -15,7 +15,7 @@ Some special functionalities are provided as commands, which starts with colons:
 	:help                   Lists commands
 	:quit                   Quit the session
 */
-package main
+package replpkg
 
 import (
 	"bytes"
@@ -277,14 +277,21 @@ func tempFile() (string, error) {
 	return filepath.Join(dir, "gore_session.go"), nil
 }
 
-func goRun(files []string) error {
+func goRun(files []string) ([]byte, error, bytes.Buffer) {
+
+	var stderr bytes.Buffer
+
 	args := append([]string{"run"}, files...)
 	debugf("go %s", strings.Join(args, " "))
 	cmd := exec.Command("go", args...)
+	
+	//TODO: Support Stdin from notebook / lab
 	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	//cmd.Stdout = os.Stdout
+	//cmd.Stderr = os.Stderr
+	cmd.Stderr = &stderr
+	out, err := cmd.Output()
+	return out, err, stderr
 }
 
 func (s *Session) evalExpr(in string) (ast.Expr, error) {

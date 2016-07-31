@@ -1,4 +1,4 @@
-package main
+package replpkg
 
 import (
 	"testing"
@@ -76,7 +76,7 @@ func TestIncludePackage(t *testing.T) {
 	s, err := NewSession()
 	noError(t, err)
 
-	err = s.includePackage("github.com/motemen/gore/gocode")
+	err = s.includePackage("github.com/fabian-z/gophernotes/replpkg/gocode")
 	noError(t, err)
 
 	err = s.Eval("Completer{}")

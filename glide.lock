@@ -1,8 +1,6 @@
-hash: 21d09d09fb3bb73d96fac733792d738238fa370ec2013257ba67b300a646b5be
-updated: 2016-07-24T20:47:26.56726041+02:00
+hash: d322db0149e8b2eb088e457882d19f1d6763b5889bda6d01a5e008c975ba2444
+updated: 2016-07-31T17:52:27.329307864+02:00
 imports:
-- name: github.com/alecthomas/gozmq
-  version: d1b01a2df6b2c64f03fecaeabea541963fc4749f
 - name: github.com/mitchellh/go-homedir
   version: 756f7b183b7ab78acdbbee5c7f392838ed459dda
 - name: github.com/motemen/go-quickfix
@@ -11,10 +9,11 @@ imports:
   version: 179d4d0c4d8d407a32af483c2354df1d2c91e6c3
 - name: github.com/pebbe/zmq4
   version: abe13fe06e130b96c4536978e0ff857716df558f
+- name: github.com/peterh/liner
+  version: 8975875355a81d612fafb9f5a6037bdcc2d9b073
 - name: golang.org/x/tools
-  version: ed69e84b1518b5857a9f4e01d1f9cefdcc45246e
+  version: 9e7459099f9afd6a15464d69d93c6eed49bb545d
   subpackages:
   - go/ast/astutil
-  - go/gcimporter15
   - imports
 devImports: []
