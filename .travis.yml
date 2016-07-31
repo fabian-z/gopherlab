@@ -1,5 +1,18 @@
 language: go
 
+
+
+before_install:
+  - sudo apt-get -qq update
+  - sudo add-apt-repository -y ppa:saltstack/salt
+  - sudo apt-get -qq update
+  - sudo apt-get install libzmq3 libzmq3-dev
+
+install: true
+
 go:
   - 1.6
   - tip
+
+script:
+  - go test -v github.com/fabian-z/gopherlab

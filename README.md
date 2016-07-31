@@ -11,11 +11,7 @@ The REPL backend of both `gophernotes` and `gopherlab` is provided by [gore](htt
 
 ### Simple interactive use:
 
-![alt tag](XXX)
-
-### Story telling and pattern recognition with Markdown and Golang:
-
-![alt tag](XXX pr)
+![Screenshot](https://rawgit.com/fabian-z/gopherlab/master/doc/screenshot.png)
 
 ### Example Notebooks (download and run them locally, follow the links to view in GitHub):
 - [Simple Printing and Channels](https://github.com/fabian-z/gopherlab/blob/master/examples/Simple-Example.ipynb)
