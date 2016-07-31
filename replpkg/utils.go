@@ -1,4 +1,4 @@
-package replpkg
+package main
 
 import (
 	"bytes"

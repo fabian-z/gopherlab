@@ -1,4 +1,4 @@
-package replpkg
+package main
 
 import (
 	"fmt"
@@ -10,7 +10,6 @@ import (
 var debug bool
 
 func debugf(format string, args ...interface{}) {
-
 	if !debug {
 		return
 	}

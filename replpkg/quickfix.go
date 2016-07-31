@@ -1,4 +1,4 @@
-package replpkg
+package main
 
 import (
 	"strings"
@@ -90,7 +90,6 @@ quickFixAttempt:
 }
 
 func (s *Session) clearQuickFix() {
-
 	// make all import specs explicit (i.e. no "_").
 	for _, imp := range s.File.Imports {
 		imp.Name = nil
@@ -173,11 +172,6 @@ var pureBuiltinFuncNames = map[string]bool{
 	"real":    true,
 }
 
-var pureNotBuiltinFuncNames = map[string]bool{
-	"Println": true,
-	"Printf":  true,
-}
-
 // isPureExpr checks if an expression expr is "pure", which means
 // removing this expression will no affect the entire program.
 // - identifiers ("x")
@@ -202,7 +196,6 @@ func (s *Session) isPureExpr(expr ast.Expr) bool {
 		return s.isPureExpr(expr.X) && s.isPureExpr(expr.Y)
 	case *ast.CallExpr:
 		tv := s.TypeInfo.Types[expr.Fun]
-
 		for _, arg := range expr.Args {
 			if s.isPureExpr(arg) == false {
 				return false
@@ -216,14 +209,6 @@ func (s *Session) isPureExpr(expr ast.Expr) bool {
 		if tv.IsBuiltin() {
 			if ident, ok := expr.Fun.(*ast.Ident); ok {
 				if pureBuiltinFuncNames[ident.Name] {
-					return true
-				}
-			}
-		}
-
-		if !tv.IsBuiltin() {
-			if selectorExpr, ok := expr.Fun.(*ast.SelectorExpr); ok {
-				if pureNotBuiltinFuncNames[selectorExpr.Sel.Name] {
 					return true
 				}
 			}

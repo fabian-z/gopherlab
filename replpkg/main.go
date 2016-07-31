@@ -1,9 +1,27 @@
-package replpkg
+/*
+Yet another Go REPL that works nicely. Featured with line editing, code completion and more.
+
+Usage
+
+When started, a prompt is shown waiting for input. Enter any statement or expression to proceed.
+If an expression is given or any variables are assigned or defined, their data will be pretty-printed.
+
+Some special functionalities are provided as commands, which starts with colons:
+
+	:import <package path>  Imports a package
+	:print                  Prints current source code
+	:write [<filename>]     Writes out current code
+	:doc <target>           Shows documentation for an expression or package name given
+	:help                   Lists commands
+	:quit                   Quit the session
+*/
+package main
 
 import (
 	"bytes"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -13,19 +31,20 @@ import (
 
 	"go/ast"
 	"go/build"
+	"go/importer"
 	"go/parser"
 	"go/printer"
 	"go/scanner"
 	"go/token"
-
 	"go/types"
+
 	"golang.org/x/tools/imports"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/motemen/go-quickfix"
 )
 
-const version = "0.2.5"
+const version = "0.2.6"
 const printerName = "__gore_p"
 
 var (
@@ -34,6 +53,104 @@ var (
 		"import packages, functions, variables and constants from external golang source files")
 	flagPkg = flag.String("pkg", "", "specify a package where the session will be run inside")
 )
+
+func main() {
+	flag.Parse()
+
+	s, err := NewSession()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("gore version %s  :help for help\n", version)
+
+	if *flagExtFiles != "" {
+		extFiles := strings.Split(*flagExtFiles, ",")
+		s.includeFiles(extFiles)
+	}
+
+	if *flagPkg != "" {
+		err := s.includePackage(*flagPkg)
+		if err != nil {
+			errorf("-pkg: %s", err)
+			os.Exit(1)
+		}
+	}
+
+	rl := newContLiner()
+	defer rl.Close()
+
+	var historyFile string
+	home, err := homeDir()
+	if err != nil {
+		errorf("home: %s", err)
+	} else {
+		historyFile = filepath.Join(home, "history")
+
+		f, err := os.Open(historyFile)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				errorf("%s", err)
+			}
+		} else {
+			_, err := rl.ReadHistory(f)
+			if err != nil {
+				errorf("while reading history: %s", err)
+			}
+		}
+	}
+
+	rl.SetWordCompleter(s.completeWord)
+
+	for {
+		in, err := rl.Prompt()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			fmt.Fprintf(os.Stderr, "fatal: %s", err)
+			os.Exit(1)
+		}
+
+		if in == "" {
+			continue
+		}
+
+		if err := rl.Reindent(); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %s\n", err)
+			rl.Clear()
+			continue
+		}
+
+		err = s.Eval(in)
+		if err != nil {
+			if err == ErrContinue {
+				continue
+			} else if err == ErrQuit {
+				break
+			}
+			fmt.Println(err)
+		}
+		rl.Accepted()
+	}
+
+	if historyFile != "" {
+		err := os.MkdirAll(filepath.Dir(historyFile), 0755)
+		if err != nil {
+			errorf("%s", err)
+		} else {
+			f, err := os.Create(historyFile)
+			if err != nil {
+				errorf("%s", err)
+			} else {
+				_, err := rl.WriteHistory(f)
+				if err != nil {
+					errorf("while saving history: %s", err)
+				}
+			}
+		}
+	}
+}
 
 func homeDir() (home string, err error) {
 	home = os.Getenv("GORE_HOME")
@@ -50,7 +167,6 @@ func homeDir() (home string, err error) {
 	return
 }
 
-// Session encodes info about the current REPL session
 type Session struct {
 	FilePath       string
 	File           *ast.File
@@ -90,17 +206,13 @@ var printerPkgs = []struct {
 	{"fmt", `fmt.Printf("%#v\n", x)`},
 }
 
-// NewSession initiates a new REPL
 func NewSession() (*Session, error) {
 	var err error
 
 	s := &Session{
 		Fset: token.NewFileSet(),
 		Types: &types.Config{
-			Importer: importer{
-				impFn:    gcImporter,
-				packages: make(map[string]*types.Package),
-			},
+			Importer: importer.Default(),
 		},
 	}
 
@@ -137,22 +249,20 @@ func (s *Session) mainFunc() *ast.FuncDecl {
 	return s.File.Scope.Lookup("main").Decl.(*ast.FuncDecl)
 }
 
-// Run calls "go run" with appropriate files appended
-func (s *Session) Run() ([]byte, error, bytes.Buffer) {
+func (s *Session) Run() error {
 	f, err := os.Create(s.FilePath)
 	if err != nil {
-		return []byte{}, err, bytes.Buffer{}
+		return err
 	}
 
 	err = printer.Fprint(f, s.Fset, s.File)
 	if err != nil {
-		return []byte{}, err, bytes.Buffer{}
+		return err
 	}
 
 	return goRun(append(s.ExtraFilePaths, s.FilePath))
 }
 
-// tempFile prepares the temporary session file for the REPL
 func tempFile() (string, error) {
 	dir, err := ioutil.TempDir("", "")
 	if err != nil {
@@ -167,19 +277,14 @@ func tempFile() (string, error) {
 	return filepath.Join(dir, "gore_session.go"), nil
 }
 
-func goRun(files []string) ([]byte, error, bytes.Buffer) {
-
-	var stderr bytes.Buffer
-
+func goRun(files []string) error {
 	args := append([]string{"run"}, files...)
 	debugf("go %s", strings.Join(args, " "))
 	cmd := exec.Command("go", args...)
 	cmd.Stdin = os.Stdin
-	//cmd.Stdout = os.Stdout
-	//cmd.Stderr = os.Stderr
-	cmd.Stderr = &stderr
-	out, err := cmd.Output()
-	return out, err, stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
 
 func (s *Session) evalExpr(in string) (ast.Expr, error) {
@@ -247,10 +352,8 @@ func (s *Session) appendStatements(stmts ...ast.Stmt) {
 	s.mainBody.List = append(s.mainBody.List, stmts...)
 }
 
-// Error is an exported type error
 type Error string
 
-// ErrContinue and ErrQuit are specific exported errors
 const (
 	ErrContinue Error = "<continue input>"
 	ErrQuit     Error = "<quit session>"
@@ -297,13 +400,13 @@ func (s *Session) reset() error {
 	return nil
 }
 
-// Eval handles the evaluation of code parsed from received messages
-func (s *Session) Eval(in string) (string, error, bytes.Buffer) {
+func (s *Session) Eval(in string) error {
 	debugf("eval >>> %q", in)
 
 	s.clearQuickFix()
 	s.storeMainBody()
 
+	var commandRan bool
 	for _, command := range commands {
 		arg := strings.TrimPrefix(in, ":"+command.name)
 		if arg == in {
@@ -312,18 +415,21 @@ func (s *Session) Eval(in string) (string, error, bytes.Buffer) {
 
 		if arg == "" || strings.HasPrefix(arg, " ") {
 			arg = strings.TrimSpace(arg)
-
-			result, err := command.action(s, arg)
+			err := command.action(s, arg)
 			if err != nil {
 				if err == ErrQuit {
-					return "", err, bytes.Buffer{}
+					return err
 				}
 				errorf("%s: %s", command.name, err)
 			}
-
-			s.doQuickFix()
-			return result, nil, bytes.Buffer{}
+			commandRan = true
+			break
 		}
+	}
+
+	if commandRan {
+		s.doQuickFix()
+		return nil
 	}
 
 	if _, err := s.evalExpr(in); err != nil {
@@ -333,39 +439,8 @@ func (s *Session) Eval(in string) (string, error, bytes.Buffer) {
 		if err != nil {
 			debugf("stmt :: err = %s", err)
 
-			// try to import this as a proxy function and correct for any imports
-			appendForImport := `package main
-
-
-			`
-
-			f, err := os.Create(string(filepath.Dir(s.FilePath)) + "/func_proxy.go")
-			if err != nil {
-				panic(err)
-			}
-
-			_, err = f.Write([]byte(appendForImport + in))
-			if err != nil {
-				panic(err)
-			}
-			f.Close()
-
-			cmd := exec.Command("goimports", "-w", string(filepath.Dir(s.FilePath))+"/func_proxy.go")
-			err = cmd.Run()
-			if err != nil {
-				panic(err)
-			}
-
-			functproxy, err := ioutil.ReadFile(string(filepath.Dir(s.FilePath)) + "/func_proxy.go")
-			if err != nil {
-				panic(err)
-			}
-
-			if err = s.importFile(functproxy); err != nil {
-				errorf("%s", err)
-				if _, ok := err.(scanner.ErrorList); ok {
-					return "", ErrContinue, bytes.Buffer{}
-				}
+			if _, ok := err.(scanner.ErrorList); ok {
+				return ErrContinue
 			}
 		}
 	}
@@ -375,7 +450,7 @@ func (s *Session) Eval(in string) (string, error, bytes.Buffer) {
 	}
 	s.doQuickFix()
 
-	output, err, strerr := s.Run()
+	err := s.Run()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			// if failed with status 2, remove the last statement
@@ -389,7 +464,7 @@ func (s *Session) Eval(in string) (string, error, bytes.Buffer) {
 		errorf("%s", err)
 	}
 
-	return string(output), err, strerr
+	return err
 }
 
 // storeMainBody stores current state of code so that it can be restored
