@@ -1,7 +1,7 @@
 package main
 
 import (
-	repl "github.com/fabian-z/gophernotes/replpkg"
+	repl "github.com/fabian-z/gopherlab/replpkg"
 	"testing"
 )
 

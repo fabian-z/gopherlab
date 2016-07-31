@@ -76,7 +76,7 @@ func TestIncludePackage(t *testing.T) {
 	s, err := NewSession()
 	noError(t, err)
 
-	err = s.includePackage("github.com/fabian-z/gophernotes/replpkg/gocode")
+	err = s.includePackage("github.com/fabian-z/gopherlab/replpkg/gocode")
 	noError(t, err)
 
 	err = s.Eval("Completer{}")

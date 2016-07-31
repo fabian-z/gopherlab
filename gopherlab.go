@@ -153,7 +153,7 @@ func SendKernelInfo(receipt MsgReceipt) {
 
 	reply.Content = KernelInfo{
 		ProtocolVersion:       protocolVersion,
-		Implementation:        "Gophernotes",
+		Implementation:        "gopherlab",
 		ImplementationVersion: "0.1",
 		LanguageInfo: KernelLanguageInfo{
 			Name:          "go",
@@ -161,7 +161,7 @@ func SendKernelInfo(receipt MsgReceipt) {
 			Mimetype:      "application/x-golang", // text/plain would be possible, too
 			FileExtension: ".go",
 		},
-		Banner: "Gophernotes - msg spec v5",
+		Banner: "Gopherlab - https://github.com/fabian-z/gopherlab",
 	}
 
 	receipt.SendResponse(receipt.Sockets.Shell_socket, reply)
@@ -205,10 +205,10 @@ func HandleConnectRequest(receipt MsgReceipt) {
 }
 
 // RunKernel is the main entry point to start the kernel. This is what is called by the
-// gophernotes executable.
+// gopherlab executable.
 func RunKernel(connection_file string, logwriter io.Writer) {
 
-	logger = log.New(logwriter, "gophernotes ", log.LstdFlags)
+	logger = log.New(logwriter, "gopherlab ", log.LstdFlags)
 
 	// set up the "Session" with the replpkg
 	SetupExecutionEnvironment()

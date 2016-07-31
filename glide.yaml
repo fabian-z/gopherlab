@@ -1,4 +1,4 @@
-package: github.com/fabian-z/gophernotes
+package: github.com/fabian-z/gopherlab
 import:
 - package: github.com/mitchellh/go-homedir
 - package: github.com/motemen/go-quickfix

@@ -3,7 +3,7 @@ package replpkg
 import (
 	"testing"
 
-	"github.com/fabian-z/gophernotes/replpkg/gocode"
+	"github.com/fabian-z/gopherlab/replpkg/gocode"
 )
 
 func TestSession_completeCode(t *testing.T) {

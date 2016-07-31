@@ -3,7 +3,7 @@ package replpkg
 import (
 	"strings"
 
-	"github.com/fabian-z/gophernotes/replpkg/gocode"
+	"github.com/fabian-z/gopherlab/replpkg/gocode"
 )
 
 func (s *Session) completeWord(line string, pos int) (string, []string, string) {
