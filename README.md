@@ -1,11 +1,12 @@
 # gopherlab - Go in Jupyter Notebooks
 ![CI status](https://travis-ci.org/fabian-z/gopherlab.svg)
+![Code quality report](https://goreportcard.com/badge/github.com/fabian-z/gopherlab)
 
 `gopherlab` is a Go kernel for [Jupyter](http://jupyter.org/) notebooks, also supporting the still alpha [JupyterLab](https://github.com/jupyter/jupyterlab).
 This allows for using Go in an interactive context, directly in the browser, making it ideal for educational uses and data science. 
-Use `gopherlab` to create and share documents that contain live Go code, equations, visualizations and explanatory text.  These notebooks, with the be shared with others via e-mail, GitHub, etc. 
+Use `gopherlab` to create and share documents that contain live Go code, equations, visualizations and explanatory text.  These notebooks can then be shared with others via e-mail, GitHub, etc. 
 
-The original `gophernotes` project came out of the [Gopher Gala](http://gophergala.com/) 2016 and was inspired a self-described as limited, ipython kernel call [iGo](https://github.com/takluyver/igo).
+The original `gophernotes` project came out of the [Gopher Gala](http://gophergala.com/) 2016 and was inspired by a self-described as limited ipython kernel called [iGo](https://github.com/takluyver/igo).
 The REPL backend of both `gophernotes` and `gopherlab` is provided by [gore](https://github.com/motemen/gore).
 
 ## Screenshots/Examples
