@@ -4,22 +4,16 @@
 
 FROM pritunl/archlinux:latest
 
+RUN echo 'Server = https://mirrors.kernel.org/archlinux/$repo/os/$arch' > /etc/pacman.d/mirrorlist
+RUN pacman -Syyu --noconfirm
 RUN pacman -S --noconfirm --needed go go-tools zeromq jupyter jupyter-notebook git base-devel mathjax pandoc texlive-core wget
 RUN pacman -S --needed --noconfirm ipython python-ipykernel python-setuptools python-jinja python-pyzmq python-jsonschema python-mistune python-pygments python-setuptools python2-setuptools npm jupyter-nbconvert qt5-svg python-pyqt5 python-sip
 RUN usermod -d /tmp/ nobody
 
 USER nobody
 
-RUN mkdir /tmp/jupyter && cd /tmp/jupyter && \
-    wget https://git.archlinux.org/svntogit/community.git/plain/trunk/PKGBUILD?h=packages/jupyter -O PKGBUILD && \
-    makepkg -s --noconfirm
-
-USER root
-RUN cd /tmp/jupyter && pacman -U --noconfirm *.pkg.tar.xz
-
-USER nobody
 RUN cd /tmp && git clone https://aur.archlinux.org/jupyterlab-git.git
-RUN cd /tmp/jupyterlab-git/ && makepkg -s --noconfirm
+RUN cd /tmp/jupyterlab-git/ && makepkg --noconfirm
 
 USER root
 RUN cd /tmp/jupyterlab-git && pacman -U --noconfirm *.pkg.tar.xz
