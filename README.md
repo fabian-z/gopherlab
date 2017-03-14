@@ -37,7 +37,7 @@ The REPL backend of both `gophernotes` and `gopherlab` is provided by [gore](htt
 
 
 
--    ```
+-   ```
     go get github.com/fabian-z/gopherlab
     ```
   
