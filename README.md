@@ -63,12 +63,37 @@ The REPL backend of both `gophernotes` and `gopherlab` is provided by [gore](htt
   
   sed -i "s#/go/bin/gopherlab#$HOME/.local/share/jupyter/kernels/gopherlab/gopherlab#g" $HOME/.local/share/jupyter/kernels/gopherlab/kernel.json
 ```
-  
-
 
 ### Local, OSX
 
-TBD
+- Dependencies:
+
+  - [Go](https://golang.org) (Tested with Go 1.8)
+  - Jupyter and ZeroMQ
+    - ```port install py36-jupyter py36-readline```
+
+- Create a workspace and setup your `GOPATH`, see https://golang.org/doc/code.html#GOPATH
+
+-   ```
+    go get github.com/fabian-z/gopherlab
+    ```
+
+- Create a directory for the new kernel config:
+
+  ```
+  mkdir -p ~/Library/Jupyter/kernels/gopherlab
+  ```
+
+- Copy the kernel config into the `jupyter` directory:
+
+  ```
+  cp $GOPATH/src/github.com/fabian-z/gopherlab/kernel/* ~/Library/Jupyter/kernels/gopherlab/
+  ```
+
+- Fix path in `kernel.json`:
+  ```
+  sed -i.bak "s#/go/bin/gopherlab#$GOPATH/bin/gopherlab#g" ~/Library/Jupyter/kernels/gopherlab/kernel.json
+  ```
 
 ## Getting Started
 
