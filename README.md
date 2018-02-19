@@ -1,3 +1,10 @@
+# Archived: gopherlab is obsoleted by gophernotes
+## Please use [the original project](https://github.com/gopherdata/gophernotes)
+
+The purpose of this fork was to add Jupyter v5 protocol and JupyterLab support to Go notebooks. Since then the original project has seen significant work (including v5 protocol support) and is now being actively maintained. Therefore, all users of this fork are encouraged to switch their usage to [gophernotes](https://github.com/gopherdata/gophernotes). Please also direct all further contributions there.
+
+---
+
 # gopherlab - Go in Jupyter Notebooks
 [![CI status](https://travis-ci.org/fabian-z/gopherlab.svg)](https://travis-ci.org/fabian-z/gopherlab)
 [![Code quality report](https://goreportcard.com/badge/github.com/fabian-z/gopherlab)](https://goreportcard.com/report/github.com/fabian-z/gopherlab)
